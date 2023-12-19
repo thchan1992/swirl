@@ -1,17 +1,33 @@
-import { StyleSheet, Text, View } from 'react-native';
-
+import { StyleSheet, Text, View , Image} from 'react-native';
+import { SafeAreaView } from 'react-native';
+import MainScreen from './screens/MainScreen';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useFonts } from 'expo-font';
 export default function App() {
+
+
+  let [fontsLoaded] = useFonts({
+    'Montserrat-Regular': require('./assets/fonts/Montserrat-Regular.otf'),
+    'Montserrat-Bold': require('./assets/fonts/Montserrat-Bold.otf')
+  });
+  if (!fontsLoaded) {
+    return null; 
+  }
+
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-    </View>
+    <LinearGradient colors={[ '#34aadc', '#002366']}
+      style={styles.container}>
+    <SafeAreaView>
+      <MainScreen />
+    </SafeAreaView>   
+    </LinearGradient>   
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    // backgroundColor: '#34aadc',
     alignItems: 'center',
     justifyContent: 'center',
   },
