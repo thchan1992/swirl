@@ -29,6 +29,9 @@ import { getAnswerId } from "../constants/getAnswerId";
 import { AnswerData } from "../util/types";
 import answerData from "../assets/items_list.json";
 import { SafeAreaView } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { dateConvertor } from "../util/dateConvertor";
+import { imageSourceFinder } from "../util/imageMap";
 
 const MainScreen: React.FC = () => {
   const [answer, setAnswer] = useState("");
@@ -70,22 +73,93 @@ const MainScreen: React.FC = () => {
   }, [isLoading]);
 
   const handleTextChange = (text: string) => {
-    if (/^[a-zA-Z]*$/.test(text)) {
-      setAnswer(text.toUpperCase());
+    if (Platform.OS === "ios") {
+      if (/^[a-zA-Z]*$/.test(text)) {
+        setAnswer(text.toUpperCase());
+      }
+    } else {
+      setTimeout(() => {
+        if (/^[a-zA-Z]*$/.test(text)) {
+          setAnswer(text.toUpperCase());
+        }
+      }, 100);
     }
   };
+
+  useEffect(() => {
+    //save the anseerList, and current date into the local storage
+    const updateStorage = async () => {
+      try {
+        console.log(answerList);
+        const jsonValue = JSON.stringify(answerList);
+        await AsyncStorage.setItem("answerList", jsonValue);
+        console.log(jsonValue, "saved answerList");
+      } catch (e) {
+        console.error("Error storing answerList", e);
+      }
+    };
+
+    const updateDate = async () => {
+      try {
+        const currentDate = new Date();
+        const dateToStore = dateConvertor(currentDate);
+        await AsyncStorage.setItem("date", dateToStore);
+      } catch (e) {
+        console.error("Error storing date", e);
+      }
+    };
+    if (answerList.length > 0) {
+      // Perform any actions you need with the updated list here.
+      updateStorage();
+      updateDate();
+    }
+  }, [answerList]);
+
+  useEffect(() => {
+    const getAnswerList = async () => {
+      try {
+        const jsonValue = await AsyncStorage.getItem("answerList");
+        return jsonValue != null ? JSON.parse(jsonValue) : [];
+      } catch (e) {
+        console.error("Error retrieving answerList", e);
+        return [];
+      }
+    };
+
+    //once the app is on, the app will check the local storage whether the current date is matching the date in the system,
+    const getDate = async () => {
+      try {
+        const currentDate = new Date();
+        const dateToCheck = dateConvertor(currentDate);
+        const date = await AsyncStorage.getItem("date");
+        console.log(date === dateToCheck);
+        if (dateToCheck === date) {
+          console.log("xx");
+          const arr = await getAnswerList();
+          console.log(arr);
+          setAnswerList(arr);
+          setLevel(arr.length * 2);
+        } else {
+        }
+      } catch (e) {
+        console.log("Error getting date ", e);
+      }
+    };
+    getDate();
+
+    //if not, delete everything,
+    //if yes, load the answer list, and calculate the answer length to get the level
+  }, []);
 
   const submitAnswer = () => {
     if (answerList.indexOf(answer) === -1) {
       if (typedAnswerData[getAnswerId].name.toUpperCase() === answer) {
-        console.log("win");
         setIsCorrect(true);
         setLevel(60);
       } else {
         setIsCorrect(false);
-        let arr: string[] = answerList;
-        arr.push(answer);
-        setAnswerList(arr);
+        setAnswerList((prevAnswers) => [...prevAnswers, answer]);
+
         console.log(
           answerList,
           typedAnswerData[getAnswerId].name.toUpperCase()
@@ -94,7 +168,6 @@ const MainScreen: React.FC = () => {
         setLevel(level + 2);
       }
     } else {
-      console.log("answer has been entered");
       setAnswer("");
       showAlert("Duplicated", "The same answer has been entered");
     }
@@ -126,7 +199,7 @@ const MainScreen: React.FC = () => {
               <Image
                 blurRadius={60 - level}
                 style={styles.image}
-                source={require("../assets/goat.jpg")}
+                source={imageSourceFinder(typedAnswerData[getAnswerId].name)}
               />
             </View>
           </View>
