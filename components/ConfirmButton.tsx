@@ -12,12 +12,17 @@ import { LinearGradient } from "expo-linear-gradient";
 interface ConfirmButton {
   title: string;
   onPress: () => void;
+  isFinished: boolean;
 }
 
-const ConfirmButton: React.FC<ConfirmButton> = ({ title, onPress }) => {
+const ConfirmButton: React.FC<ConfirmButton> = ({
+  title,
+  onPress,
+  isFinished,
+}) => {
   return (
     <View style={styles.shadow}>
-      <TouchableOpacity onPress={onPress}>
+      <TouchableOpacity onPress={onPress} disabled={isFinished}>
         <LinearGradient style={styles.button} colors={["#fb6e76", "#ff2d55"]}>
           <Text style={styles.letter}>{title}</Text>
         </LinearGradient>
