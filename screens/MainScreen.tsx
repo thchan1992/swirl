@@ -29,6 +29,9 @@ import { getAnswerId } from "../constants/getAnswerId";
 import { AnswerData } from "../util/types";
 import answerData from "../assets/items_list.json";
 import { SafeAreaView } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { dateConvertor } from "../util/dateConvertor";
+import { imageSourceFinder } from "../util/imageMap";
 
 const MainScreen: React.FC = () => {
   const [answer, setAnswer] = useState("");
@@ -38,6 +41,7 @@ const MainScreen: React.FC = () => {
   const [level, setLevel] = useState(0);
   const typedAnswerData: AnswerData = answerData;
   const [isCorrect, setIsCorrect] = useState(null);
+  const [isFinished, setIsFinished] = useState(false);
 
   useEffect(() => {
     //answer change,
@@ -70,40 +74,152 @@ const MainScreen: React.FC = () => {
   }, [isLoading]);
 
   const handleTextChange = (text: string) => {
-    if (/^[a-zA-Z]*$/.test(text)) {
-      setAnswer(text.toUpperCase());
+    if (Platform.OS === "ios") {
+      if (/^[a-zA-Z]*$/.test(text)) {
+        setAnswer(text.toUpperCase());
+      }
+    } else {
+      setTimeout(() => {
+        if (/^[a-zA-Z]*$/.test(text)) {
+          setAnswer(text.toUpperCase());
+        }
+      }, 1);
     }
   };
 
-  const submitAnswer = () => {
-    if (answerList.indexOf(answer) === -1) {
-      if (typedAnswerData[getAnswerId].name.toUpperCase() === answer) {
-        console.log("win");
-        setIsCorrect(true);
-        setLevel(60);
-      } else {
-        setIsCorrect(false);
-        let arr: string[] = answerList;
-        arr.push(answer);
-        setAnswerList(arr);
-        console.log(
-          answerList,
-          typedAnswerData[getAnswerId].name.toUpperCase()
-        );
-        setAnswer("");
-        setLevel(level + 2);
+  useEffect(() => {
+    const updateStorage = async () => {
+      try {
+        console.log(answerList);
+        const jsonValue = JSON.stringify(answerList);
+        await AsyncStorage.setItem("answerList", jsonValue);
+        console.log(jsonValue, "saved answerList");
+      } catch (e) {
+        console.error("Error storing answerList", e);
       }
+    };
+
+    const updateDate = async () => {
+      try {
+        const currentDate = new Date();
+        const dateToStore = dateConvertor(currentDate);
+        await AsyncStorage.setItem("date", dateToStore);
+      } catch (e) {
+        console.error("Error storing date", e);
+      }
+    };
+
+    if (answerList.length > 0) {
+      updateStorage();
+      updateDate();
+    }
+  }, [answerList]);
+
+  useEffect(() => {
+    const updateStorage = async () => {
+      try {
+        console.log(answerList);
+        const jsonValue = JSON.stringify(answerList);
+        await AsyncStorage.setItem("answerList", jsonValue);
+        console.log(jsonValue, "saved answerList");
+      } catch (e) {
+        console.error("Error storing answerList", e);
+      }
+    };
+
+    updateStorage();
+
+    const getAnswerList = async () => {
+      try {
+        const jsonValue = await AsyncStorage.getItem("answerList");
+        return jsonValue != null ? JSON.parse(jsonValue) : [];
+      } catch (e) {
+        console.error("Error retrieving answerList", e);
+        return [];
+      }
+    };
+
+    const getDate = async () => {
+      try {
+        const currentDate = new Date();
+        const dateToCheck = dateConvertor(currentDate);
+        const date = await AsyncStorage.getItem("date");
+        if (dateToCheck === date) {
+          console.log("xxx");
+          const arr = await getAnswerList();
+          console.log(typeof typedAnswerData[getAnswerId].name.toUpperCase());
+          console.log(typeof arr[arr.length - 1]);
+          console.log(
+            typedAnswerData[getAnswerId].name.toUpperCase() ===
+              arr[arr.length - 1]
+          );
+          if (
+            arr[arr.length - 1] !==
+            typedAnswerData[getAnswerId].name.toUpperCase()
+          ) {
+            setAnswerList(arr);
+            setLevel(arr.length * 2);
+          } else {
+            setLevel(-1);
+            setAnswer(typedAnswerData[getAnswerId].name.toUpperCase());
+            setIsFinished(true);
+            showAlert("Warning", "Please come back tomorrow for a new game.");
+          }
+        }
+      } catch (e) {
+        console.log("Error getting date ", e);
+      }
+    };
+    getDate();
+  }, []);
+
+  const submitAnswer = () => {
+    if (isCorrect) {
+      showAlert("Warning", "Please come back tomorrow for a new game.");
     } else {
-      console.log("answer has been entered");
-      setAnswer("");
-      showAlert("Duplicated", "The same answer has been entered");
+      //check if the input has been entered
+      if (answerList.indexOf(answer) === -1) {
+        //check if the input is same as the one from the answer
+        if (typedAnswerData[getAnswerId].name.toUpperCase() === answer) {
+          //input === answer
+          setIsCorrect(true);
+          setAnswerList((prevAnswers) => [...prevAnswers, answer]);
+          setLevel(60);
+          const score = 30 - answerList.length;
+          showAlert(
+            "Message",
+            "Your Score is: " +
+              score +
+              "\nPlease come back tomorrow for a new game."
+          );
+        } else {
+          //input !== answer
+          setIsCorrect(false);
+          setAnswerList((prevAnswers) => [...prevAnswers, answer]);
+          setAnswer("");
+          if (answerList.length < 30) {
+            setLevel(level + 2);
+          } else if (answerList.length === 30) {
+            showAlert(
+              "Score",
+              "Your Score is: " +
+                level +
+                ". The answer is " +
+                typedAnswerData[getAnswerId].name.toUpperCase()
+            );
+          }
+        }
+      } else {
+        setAnswer("");
+        showAlert("Warning", "The same answer has been entered.");
+      }
     }
   };
 
   const showAlert = (error: string, message: string) => {
     Alert.alert(
-      error, // Title of the alert
-      message, // Message of the alert
+      error,
+      message,
       [{ text: "OK", onPress: () => console.log("OK Pressed") }],
       { cancelable: false }
     );
@@ -124,9 +240,9 @@ const MainScreen: React.FC = () => {
           <View style={{ flex: 2 }}>
             <View style={styles.imageContainer}>
               <Image
-                blurRadius={60 - level}
+                blurRadius={level !== -1 ? 60 - level : 0}
                 style={styles.image}
-                source={require("../assets/goat.jpg")}
+                source={imageSourceFinder(typedAnswerData[getAnswerId].name)}
               />
             </View>
           </View>
@@ -165,6 +281,7 @@ const MainScreen: React.FC = () => {
                     showAlert("Anwser", "Answer must be 5 characters");
                   }
                 }}
+                isFinished={isFinished}
                 value={answer}
                 onChangeText={handleTextChange}
                 placeholder="hello"
@@ -172,6 +289,7 @@ const MainScreen: React.FC = () => {
             </View>
             <View style={{ flexDirection: "row" }}>
               <ConfirmButton
+                isFinished={isFinished}
                 title="Guess"
                 onPress={() => {
                   if (answer.length === 5) {
@@ -183,7 +301,11 @@ const MainScreen: React.FC = () => {
                   }
                 }}
               />
-              <ScoreBoard score={answerList.length} />
+              <ScoreBoard
+                score={
+                  isFinished === false ? 30 - answerList.length : "You Won"
+                }
+              />
             </View>
           </View>
         </SafeAreaView>
