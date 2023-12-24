@@ -9,13 +9,15 @@ import {
   shadowRadius,
 } from "../util/shadow";
 interface ScoreBoard {
-  score: number;
+  score: any;
 }
 
 const ScoreBoard: React.FC<ScoreBoard> = ({ score }) => {
+  const text = typeof score === "string" ? "You won" : "Chance: " + score;
+
   return (
     <View style={styles.button}>
-      <Text style={styles.letter}>{score}</Text>
+      <Text style={styles.letter}>{text}</Text>
     </View>
   );
 };
@@ -38,7 +40,7 @@ const styles = StyleSheet.create({
   },
   letter: {
     color: "#000000",
-    fontSize: getScreenWidth() * 0.8 * 0.1,
+    fontSize: getScreenWidth() * 0.8 * 0.07,
     fontWeight: "bold",
     fontFamily: "Montserrat-Bold",
   },

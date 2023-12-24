@@ -12,6 +12,7 @@ interface AnswerInput {
   onChangeText: (text: string) => void;
   placeholder?: string;
   onSubmitEditing: () => void;
+  isFinished: boolean;
 }
 
 const AnswerInput: React.FC<AnswerInput> = ({
@@ -19,6 +20,7 @@ const AnswerInput: React.FC<AnswerInput> = ({
   onChangeText,
   placeholder,
   onSubmitEditing,
+  isFinished,
 }) => {
   return (
     <View
@@ -48,6 +50,7 @@ const AnswerInput: React.FC<AnswerInput> = ({
           fontWeight: "bold",
           fontFamily: "Montserrat-Bold",
         }}
+        editable={isFinished ? false : true}
         autoCorrect={false}
         maxLength={5}
         onChangeText={onChangeText}

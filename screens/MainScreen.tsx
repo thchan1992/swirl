@@ -41,6 +41,7 @@ const MainScreen: React.FC = () => {
   const [level, setLevel] = useState(0);
   const typedAnswerData: AnswerData = answerData;
   const [isCorrect, setIsCorrect] = useState(null);
+  const [isFinished, setIsFinished] = useState(false);
 
   useEffect(() => {
     //answer change,
@@ -82,12 +83,11 @@ const MainScreen: React.FC = () => {
         if (/^[a-zA-Z]*$/.test(text)) {
           setAnswer(text.toUpperCase());
         }
-      }, 100);
+      }, 1);
     }
   };
 
   useEffect(() => {
-    //save the anseerList, and current date into the local storage
     const updateStorage = async () => {
       try {
         console.log(answerList);
@@ -108,14 +108,27 @@ const MainScreen: React.FC = () => {
         console.error("Error storing date", e);
       }
     };
+
     if (answerList.length > 0) {
-      // Perform any actions you need with the updated list here.
       updateStorage();
       updateDate();
     }
   }, [answerList]);
 
   useEffect(() => {
+    const updateStorage = async () => {
+      try {
+        console.log(answerList);
+        const jsonValue = JSON.stringify(answerList);
+        await AsyncStorage.setItem("answerList", jsonValue);
+        console.log(jsonValue, "saved answerList");
+      } catch (e) {
+        console.error("Error storing answerList", e);
+      }
+    };
+
+    updateStorage();
+
     const getAnswerList = async () => {
       try {
         const jsonValue = await AsyncStorage.getItem("answerList");
@@ -126,57 +139,87 @@ const MainScreen: React.FC = () => {
       }
     };
 
-    //once the app is on, the app will check the local storage whether the current date is matching the date in the system,
     const getDate = async () => {
       try {
         const currentDate = new Date();
         const dateToCheck = dateConvertor(currentDate);
         const date = await AsyncStorage.getItem("date");
-        console.log(date === dateToCheck);
         if (dateToCheck === date) {
-          console.log("xx");
+          console.log("xxx");
           const arr = await getAnswerList();
-          console.log(arr);
-          setAnswerList(arr);
-          setLevel(arr.length * 2);
-        } else {
+          console.log(typeof typedAnswerData[getAnswerId].name.toUpperCase());
+          console.log(typeof arr[arr.length - 1]);
+          console.log(
+            typedAnswerData[getAnswerId].name.toUpperCase() ===
+              arr[arr.length - 1]
+          );
+          if (
+            arr[arr.length - 1] !==
+            typedAnswerData[getAnswerId].name.toUpperCase()
+          ) {
+            setAnswerList(arr);
+            setLevel(arr.length * 2);
+          } else {
+            setLevel(-1);
+            setAnswer(typedAnswerData[getAnswerId].name.toUpperCase());
+            setIsFinished(true);
+            showAlert("Warning", "Please come back tomorrow for a new game.");
+          }
         }
       } catch (e) {
         console.log("Error getting date ", e);
       }
     };
     getDate();
-
-    //if not, delete everything,
-    //if yes, load the answer list, and calculate the answer length to get the level
   }, []);
 
   const submitAnswer = () => {
-    if (answerList.indexOf(answer) === -1) {
-      if (typedAnswerData[getAnswerId].name.toUpperCase() === answer) {
-        setIsCorrect(true);
-        setLevel(60);
-      } else {
-        setIsCorrect(false);
-        setAnswerList((prevAnswers) => [...prevAnswers, answer]);
-
-        console.log(
-          answerList,
-          typedAnswerData[getAnswerId].name.toUpperCase()
-        );
-        setAnswer("");
-        setLevel(level + 2);
-      }
+    if (isCorrect) {
+      showAlert("Warning", "Please come back tomorrow for a new game.");
     } else {
-      setAnswer("");
-      showAlert("Duplicated", "The same answer has been entered");
+      //check if the input has been entered
+      if (answerList.indexOf(answer) === -1) {
+        //check if the input is same as the one from the answer
+        if (typedAnswerData[getAnswerId].name.toUpperCase() === answer) {
+          //input === answer
+          setIsCorrect(true);
+          setAnswerList((prevAnswers) => [...prevAnswers, answer]);
+          setLevel(60);
+          const score = 30 - answerList.length;
+          showAlert(
+            "Message",
+            "Your Score is: " +
+              score +
+              "\nPlease come back tomorrow for a new game."
+          );
+        } else {
+          //input !== answer
+          setIsCorrect(false);
+          setAnswerList((prevAnswers) => [...prevAnswers, answer]);
+          setAnswer("");
+          if (answerList.length < 30) {
+            setLevel(level + 2);
+          } else if (answerList.length === 30) {
+            showAlert(
+              "Score",
+              "Your Score is: " +
+                level +
+                ". The answer is " +
+                typedAnswerData[getAnswerId].name.toUpperCase()
+            );
+          }
+        }
+      } else {
+        setAnswer("");
+        showAlert("Warning", "The same answer has been entered.");
+      }
     }
   };
 
   const showAlert = (error: string, message: string) => {
     Alert.alert(
-      error, // Title of the alert
-      message, // Message of the alert
+      error,
+      message,
       [{ text: "OK", onPress: () => console.log("OK Pressed") }],
       { cancelable: false }
     );
@@ -197,7 +240,7 @@ const MainScreen: React.FC = () => {
           <View style={{ flex: 2 }}>
             <View style={styles.imageContainer}>
               <Image
-                blurRadius={60 - level}
+                blurRadius={level !== -1 ? 60 - level : 0}
                 style={styles.image}
                 source={imageSourceFinder(typedAnswerData[getAnswerId].name)}
               />
@@ -238,6 +281,7 @@ const MainScreen: React.FC = () => {
                     showAlert("Anwser", "Answer must be 5 characters");
                   }
                 }}
+                isFinished={isFinished}
                 value={answer}
                 onChangeText={handleTextChange}
                 placeholder="hello"
@@ -245,6 +289,7 @@ const MainScreen: React.FC = () => {
             </View>
             <View style={{ flexDirection: "row" }}>
               <ConfirmButton
+                isFinished={isFinished}
                 title="Guess"
                 onPress={() => {
                   if (answer.length === 5) {
@@ -256,7 +301,11 @@ const MainScreen: React.FC = () => {
                   }
                 }}
               />
-              <ScoreBoard score={answerList.length} />
+              <ScoreBoard
+                score={
+                  isFinished === false ? 30 - answerList.length : "You Won"
+                }
+              />
             </View>
           </View>
         </SafeAreaView>
