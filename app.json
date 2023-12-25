@@ -9,11 +9,10 @@
       "backgroundColor": "#ffffff"
     },
     "updates": {
-      "fallbackToCacheTimeout": 0
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/1da07d4d-a5b2-419a-9e1c-1cad340dd62d"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.BlurPic.BlurPic"
@@ -29,6 +28,10 @@
       "eas": {
         "projectId": "1da07d4d-a5b2-419a-9e1c-1cad340dd62d"
       }
-    }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "privacy": "public"
   }
 }
