@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "BlurPic",
+    "slug": "BlurPic",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.BlurPic.BlurPic"
+    },
+    "android": {
+      "package": "com.BlurPic.BlurPic",
+      "adaptiveIcon": {
+        "backgroundColor": "#FFFFFF"
+      }
+    },
+    "web": {},
+    "extra": {
+      "eas": {
+        "projectId": "1da07d4d-a5b2-419a-9e1c-1cad340dd62d"
+      }
+    }
+  }
+}
